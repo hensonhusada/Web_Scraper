@@ -1,10 +1,9 @@
 import requests
-from requests import get
 from bs4 import BeautifulSoup as bs
 import pandas as pd
-import numpy as np
+# import numpy as np
 
-#initializing empty lists for data
+#initializing empty lists for data, will be converted to pandas DataFrame
 titles = []
 years = []
 time = []
@@ -13,20 +12,19 @@ metascore = []
 votes = []
 us_gross = []
 
-#fetching web html with beautiful soup
+#fetching web html with requests
 headers ={"Accept-Language" : "en-US, en;q=0.5"}
 base_url = "https://www.imdb.com"
-second_url = "/search/title/?groups=top_1000&ref_=adv_prv"
+second_url = "/search/title/?groups=top_1000"
 
-for i in range(0, 20):
-    url = base_url+second_url
+# keep fetching next page to parse if exists
+while True:
+    url = base_url + second_url
     results = requests.get(url, headers=headers)
     soup = bs(results.text, "html.parser")
-    try:
-        second_url = soup.find('a', class_='lister-page-next').get('href')
-    except:
-        print('No More url')
+
     movie_div = soup.find_all('div', class_='lister-item mode-advanced')
+
     for container in movie_div:
         #name
         name = container.h3.a.text
@@ -54,7 +52,14 @@ for i in range(0, 20):
         votes.append(vote)
         grosses = nv[1].text if len(nv)>1 else '-'
         us_gross.append(grosses)
+        
+    try:
+        second_url = soup.find('a', class_='lister-page-next').get('href')
+    except:
+        print('No More url')
+        break
     
+# aggregating all entries into pandas DataFrame
 movies = pd.DataFrame({
 'movie':titles,
 'year':years,
@@ -76,4 +81,4 @@ print(movies)
 # print(movies.dtypes)
 
 #export to csv file
-movies.to_csv('movies.csv')    
+movies.to_csv('movies.csv')
